@@ -1,6 +1,6 @@
 describe('Input form', () => {
   beforeEach(() => {
-    cy.visit('/');
+    cy.seedAndVisit([]);
   });
   it('focuses input on load', () => {
     cy.focused().should('have.class', 'new-todo');
@@ -16,9 +16,11 @@ describe('Input form', () => {
   });
 
   context('Form submission', () => {
-    it.only('Adds a new todo the submit', () => {
-      const buyText = 'Buy eggs';
+    beforeEach(() => {
       cy.server();
+    });
+    it('Adds a new todo the submit', () => {
+      const buyText = 'Buy eggs';
       cy.route('POST', '/api/todos', {
         name: buyText,
         id: 1,
@@ -27,11 +29,27 @@ describe('Input form', () => {
       cy
         .get('.new-todo')
         .type(buyText)
-        .type('{enter}');
+        .type('{enter}')
+        .should('have.value', '');
       cy
         .get('.todo-list li')
         .should('have.length', 1)
         .and('contain', buyText);
+    });
+
+    it('Shows an erro message on a failed submission', () => {
+      cy.route({
+        url: '/api/todos',
+        method: 'POST',
+        status: 500,
+        response: {}
+      });
+
+      cy.get('.new-todo').type('test{enter}');
+
+      cy.get('.todo-list li').should('not.exist');
+
+      cy.get('.error').should('be.visible');
     });
   });
 });
